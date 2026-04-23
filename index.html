@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mini App</title>
+
+  <!-- SDK Telegram WebApp — OBLIGATOIRE -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+  <style>
+    :root {
+      --bg: #0e0e0e;
+      --surface: #1a1a1a;
+      --card: #242424;
+      --accent: #e63946;
+      --accent2: #ff6b35;
+      --text: #f5f5f5;
+      --muted: #888;
+      --radius: 14px;
+      --nav-h: 64px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: var(--nav-h);
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: var(--bg);
+      padding: 14px 20px 10px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .header .logo { font-size: 1.3rem; font-weight: 800; letter-spacing: -0.5px; }
+    .header .logo span { color: var(--accent); }
+    .header .cart-btn {
+      background: var(--card);
+      border: none;
+      border-radius: 50px;
+      padding: 6px 14px;
+      color: var(--text);
+      font-size: 0.85rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cart-count {
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      width: 18px;
+      height: 18px;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    /* ── PAGES ── */
+    .page { display: none; padding: 16px 16px 20px; animation: fadeIn .2s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+    /* ── HOME ── */
+    .hero {
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+      border-radius: var(--radius);
+      padding: 24px 20px;
+      margin-bottom: 20px;
+    }
+    .hero h2 { font-size: 1.5rem; font-weight: 800; margin-bottom: 6px; }
+    .hero p { font-size: 0.9rem; opacity: 0.85; }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* ── CATEGORIES ── */
+    .categories {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+      margin-bottom: 20px;
+    }
+    .categories::-webkit-scrollbar { display: none; }
+    .cat-chip {
+      flex-shrink: 0;
+      background: var(--card);
+      border: 2px solid transparent;
+      border-radius: 50px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .2s;
+      color: var(--text);
+    }
+    .cat-chip.active { border-color: var(--accent); color: var(--accent); }
+
+    /* ── PRODUCT GRID ── */
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .product-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: transform .15s;
+      position: relative;
+    }
+    .product-card:active { transform: scale(0.97); }
+    .product-img {
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+    .product-info { padding: 10px 10px 12px; }
+    .product-name { font-size: 0.9rem; font-weight: 700; margin-bottom: 4px; }
+    .product-price { color: var(--accent); font-weight: 800; font-size: 1rem; }
+    .product-add {
+      position: absolute;
+      bottom: 12px;
+      right: 10px;
+      background: var(--accent);
+      border: none;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      color: white;
+      font-size: 1.1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+
+    /* ── MENU PAGE ── */
+    .menu-list { display: flex; flex-direction: column; gap: 10px; }
+    .menu-item {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .menu-icon { font-size: 2rem; }
+    .menu-label { font-weight: 700; font-size: 1rem; }
+    .menu-desc { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .menu-arrow { margin-left: auto; color: var(--muted); font-size: 1.2rem; }
+
+    /* ── CART PAGE ── */
+    .cart-empty {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--muted);
+    }
+    .cart-empty .icon { font-size: 3rem; margin-bottom: 10px; }
+    .cart-items { display: flex; flex-direction: column; gap: 10px; }
+    .cart-item {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .cart-item-icon { font-size: 1.8rem; }
+    .cart-item-name { font-weight: 700; font-size: 0.9rem; }
+    .cart-item-price { color: var(--accent); font-size: 0.85rem; margin-top: 2px; }
+    .cart-item-qty {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .qty-btn {
+      background: var(--surface);
+      border: none;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      color: var(--text);
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .qty-val { font-weight: 700; min-width: 16px; text-align: center; }
+
+    .cart-footer {
+      margin-top: 20px;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 16px;
+    }
+    .cart-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; margin-bottom: 14px; }
+    .btn-order {
+      width: 100%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 50px;
+      padding: 14px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── PROFIL ── */
+    .profile-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .profile-avatar {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      margin: 0 auto 12px;
+    }
+    .profile-name { font-size: 1.1rem; font-weight: 800; }
+    .profile-sub { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+    .stat-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .stat-box {
+      flex: 1;
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 14px;
+      text-align: center;
+    }
+    .stat-val { font-size: 1.4rem; font-weight: 800; color: var(--accent); }
+    .stat-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: var(--nav-h);
+      background: var(--surface);
+      border-top: 1px solid #2a2a2a;
+      display: flex;
+      z-index: 100;
+    }
+    .nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--muted);
+      font-size: 0.68rem;
+      font-weight: 600;
+      transition: color .15s;
+      position: relative;
+    }
+    .nav-item.active { color: var(--accent); }
+    .nav-item .nav-icon { font-size: 1.4rem; }
+    .nav-badge {
+      position: absolute;
+      top: 8px;
+      right: calc(50% - 18px);
+      background: var(--accent);
+      color: white;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      font-size: 0.65rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+    }
+    .nav-badge.visible { display: flex; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
+      background: #2a2a2a;
+      color: white;
+      border-radius: 50px;
+      padding: 10px 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      opacity: 0;
+      transition: all .3s;
+      pointer-events: none;
+      z-index: 999;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">Fire<span>Shop</span></div>
+  <button class="cart-btn" onclick="goTo('cart')">
+    🛒 Panier
+    <span class="cart-count" id="cartCountHeader">0</span>
+  </button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- PAGE : ACCUEIL / BOUTIQUE -->
+<div class="page active" id="page-home">
+  <div class="hero">
+    <h2>🔥 Bienvenue !</h2>
+    <p>Découvrez nos produits exclusifs livrés rapidement.</p>
+  </div>
+
+  <div class="section-title">Catégories</div>
+  <div class="categories">
+    <div class="cat-chip active" onclick="filterCat('all', this)">Tout</div>
+    <div class="cat-chip" onclick="filterCat('burger', this)">🍔 Burgers</div>
+    <div class="cat-chip" onclick="filterCat('boisson', this)">🥤 Boissons</div>
+    <div class="cat-chip" onclick="filterCat('dessert', this)">🍰 Desserts</div>
+    <div class="cat-chip" onclick="filterCat('promo', this)">⚡ Promos</div>
+  </div>
+
+  <div class="section-title">Produits</div>
+  <div class="product-grid" id="productGrid"></div>
+</div>
+
+<!-- PAGE : MENU -->
+<div class="page" id="page-menu">
+  <div class="section-title">Navigation</div>
+  <div class="menu-list">
+    <div class="menu-item" onclick="goTo('home')">
+      <div class="menu-icon">🏠</div>
+      <div><div class="menu-label">Accueil</div><div class="menu-desc">Page principale et boutique</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="goTo('cart')">
+      <div class="menu-icon">🛒</div>
+      <div><div class="menu-label">Panier</div><div class="menu-desc">Voir vos articles</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item" onclick="goTo('profile')">
+      <div class="menu-icon">👤</div>
+      <div><div class="menu-label">Mon compte</div><div class="menu-desc">Historique & fidélité</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">📍</div>
+      <div><div class="menu-label">Nous trouver</div><div class="menu-desc">Adresse & horaires</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+    <div class="menu-item">
+      <div class="menu-icon">📞</div>
+      <div><div class="menu-label">Contact</div><div class="menu-desc">Support client</div></div>
+      <div class="menu-arrow">›</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE : PANIER -->
+<div class="page" id="page-cart">
+  <div class="section-title">Mon Panier</div>
+  <div id="cartContent">
+    <div class="cart-empty">
+      <div class="icon">🛒</div>
+      <div>Votre panier est vide</div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE : PROFIL -->
+<div class="page" id="page-profile">
+  <div class="profile-card">
+    <div class="profile-avatar" id="avatarEl">👤</div>
+    <div class="profile-name" id="profileName">Utilisateur</div>
+    <div class="profile-sub" id="profileSub">@username</div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">12</div><div class="stat-label">Commandes</div></div>
+    <div class="stat-box"><div class="stat-val">240</div><div class="stat-label">Points fidélité</div></div>
+    <div class="stat-box"><div class="stat-val">⭐ 4.8</div><div class="stat-label">Note</div></div>
+  </div>
+  <div class="menu-list">
+    <div class="menu-item"><div class="menu-icon">📦</div><div><div class="menu-label">Mes commandes</div></div><div class="menu-arrow">›</div></div>
+    <div class="menu-item"><div class="menu-icon">🎁</div><div><div class="menu-label">Programme fidélité</div></div><div class="menu-arrow">›</div></div>
+    <div class="menu-item"><div class="menu-icon">⚙️</div><div><div class="menu-label">Paramètres</div></div><div class="menu-arrow">›</div></div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" id="nav-home" onclick="goTo('home')">
+    <span class="nav-icon">🏠</span>Accueil
+  </button>
+  <button class="nav-item" id="nav-menu" onclick="goTo('menu')">
+    <span class="nav-icon">☰</span>Menu
+  </button>
+  <button class="nav-item" id="nav-cart" onclick="goTo('cart')">
+    <span class="nav-icon">🛒</span>Panier
+    <span class="nav-badge" id="cartBadge">0</span>
+  </button>
+  <button class="nav-item" id="nav-profile" onclick="goTo('profile')">
+    <span class="nav-icon">👤</span>Profil
+  </button>
+</nav>
+
+<script>
+// ── Init Telegram SDK ──
+const tg = window.Telegram?.WebApp;
+if (tg) {
+  tg.ready();
+  tg.expand();
+  tg.setHeaderColor('#0e0e0e');
+  tg.setBackgroundColor('#0e0e0e');
+
+  // Charger infos utilisateur Telegram
+  const user = tg.initDataUnsafe?.user;
+  if (user) {
+    document.getElementById('profileName').textContent =
+      [user.first_name, user.last_name].filter(Boolean).join(' ');
+    document.getElementById('profileSub').textContent =
+      user.username ? '@' + user.username : 'Telegram User';
+    if (user.first_name) {
+      document.getElementById('avatarEl').textContent =
+        user.first_name[0].toUpperCase();
+    }
+  }
+}
+
+// ── Données produits ──
+const products = [
+  { id: 1, name: 'Red Burger', price: 8.90, emoji: '🍔', cat: 'burger' },
+  { id: 2, name: 'Double Smash', price: 11.50, emoji: '🍔', cat: 'burger', promo: true },
+  { id: 3, name: 'Cola 50cl', price: 2.50, emoji: '🥤', cat: 'boisson' },
+  { id: 4, name: 'Milkshake', price: 4.90, emoji: '🥛', cat: 'boisson' },
+  { id: 5, name: 'Brownie', price: 3.50, emoji: '🍫', cat: 'dessert' },
+  { id: 6, name: 'Cheesecake', price: 4.20, emoji: '🍰', cat: 'dessert' },
+  { id: 7, name: 'Maxi Menu', price: 14.90, emoji: '🔥', cat: 'promo', promo: true },
+  { id: 8, name: 'Deal Nuit', price: 9.90, emoji: '🌙', cat: 'promo', promo: true },
+];
+
+let currentCat = 'all';
+let cart = {};
+
+// ── Rendu produits ──
+function renderProducts(cat = 'all') {
+  const filtered = cat === 'all' ? products : products.filter(p => p.cat === cat || (cat === 'promo' && p.promo));
+  const grid = document.getElementById('productGrid');
+  grid.innerHTML = filtered.map(p => `
+    <div class="product-card">
+      <div class="product-img">${p.emoji}</div>
+      <div class="product-info">
+        <div class="product-name">${p.name}</div>
+        <div class="product-price">${p.price.toFixed(2)}€</div>
+      </div>
+      <button class="product-add" onclick="addToCart(${p.id})">+</button>
+    </div>
+  `).join('');
+}
+
+function filterCat(cat, el) {
+  currentCat = cat;
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderProducts(cat);
+}
+
+// ── Panier ──
+function addToCart(id) {
+  cart[id] = (cart[id] || 0) + 1;
+  updateCartUI();
+  const p = products.find(x => x.id === id);
+  showToast(`${p.emoji} ${p.name} ajouté !`);
+  if (tg) tg.HapticFeedback?.impactOccurred('light');
+}
+
+function changeQty(id, delta) {
+  cart[id] = (cart[id] || 0) + delta;
+  if (cart[id] <= 0) delete cart[id];
+  updateCartUI();
+  renderCart();
+}
+
+function updateCartUI() {
+  const total = Object.values(cart).reduce((a, b) => a + b, 0);
+  document.getElementById('cartCountHeader').textContent = total;
+  document.getElementById('cartBadge').textContent = total;
+  const badge = document.getElementById('cartBadge');
+  total > 0 ? badge.classList.add('visible') : badge.classList.remove('visible');
+}
+
+function renderCart() {
+  const keys = Object.keys(cart);
+  const el = document.getElementById('cartContent');
+  if (keys.length === 0) {
+    el.innerHTML = `<div class="cart-empty"><div class="icon">🛒</div><div>Votre panier est vide</div></div>`;
+    return;
+  }
+  const total = keys.reduce((sum, id) => sum + products.find(p=>p.id==id).price * cart[id], 0);
+  el.innerHTML = `
+    <div class="cart-items">
+      ${keys.map(id => {
+        const p = products.find(x => x.id == id);
+        return `<div class="cart-item">
+          <div class="cart-item-icon">${p.emoji}</div>
+          <div><div class="cart-item-name">${p.name}</div><div class="cart-item-price">${p.price.toFixed(2)}€</div></div>
+          <div class="cart-item-qty">
+            <button class="qty-btn" onclick="changeQty(${p.id},-1)">−</button>
+            <span class="qty-val">${cart[id]}</span>
+            <button class="qty-btn" onclick="changeQty(${p.id},1)">+</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div class="cart-footer">
+      <div class="cart-total"><span>Total</span><span>${total.toFixed(2)}€</span></div>
+      <button class="btn-order" onclick="sendOrder()">Commander maintenant 🚀</button>
+    </div>
+  `;
+}
+
+async function sendOrder() {
+  const keys = Object.keys(cart);
+  if (keys.length === 0) return;
+
+  const BOT_TOKEN = '8540064504:AAEAtkEYXJedIz9r7co316W2y1VztZSCX8I';
+  const CHAT_ID = '1869581552';
+
+  // Infos utilisateur Telegram
+  const user = tg?.initDataUnsafe?.user;
+  const userName = user
+    ? `${[user.first_name, user.last_name].filter(Boolean).join(' ')} (@${user.username || 'inconnu'})`
+    : 'Client inconnu';
+
+  // Construire le message
+  const lines = keys.map(id => {
+    const p = products.find(x => x.id == id);
+    return `${p.emoji} ${p.name} x${cart[id]} — ${(p.price * cart[id]).toFixed(2)}€`;
+  });
+  const total = keys.reduce((sum, id) => {
+    const p = products.find(x => x.id == id);
+    return sum + p.price * cart[id];
+  }, 0);
+
+  const message = [
+    '🛒 *NOUVELLE COMMANDE*',
+    `👤 Client : ${userName}`,
+    '─────────────────',
+    ...lines,
+    '─────────────────',
+    `💰 *Total : ${total.toFixed(2)}€*`,
+    `🕐 ${new Date().toLocaleString('fr-FR')}`
+  ].join('\n');
+
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: CHAT_ID,
+        text: message,
+        parse_mode: 'Markdown'
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      showToast('Commande envoyée ! ✅');
+      if (tg) tg.HapticFeedback?.notificationOccurred('success');
+      cart = {};
+      updateCartUI();
+      renderCart();
+    } else {
+      showToast('Erreur envoi ❌');
+    }
+  } catch (e) {
+    showToast('Erreur réseau ❌');
+  }
+}
+
+// ── Navigation ──
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('nav-' + page)?.classList.add('active');
+  if (page === 'cart') renderCart();
+}
+
+// ── Toast ──
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// Init
+renderProducts();
+</script>
+</body>
+</html>
